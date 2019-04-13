@@ -1,0 +1,363 @@
+INCLUDE Irvine32.inc
+INCLUDE macros.inc
+BUFFER_SIZE = 97
+.DATA
+DidntPlay byte "You Didint Play The Game Before",0
+Choice1 byte "New Game Press 1",0
+Choice2 byte "Load Last Game Press 2",0
+LoadedFileAnswer byte "SolvedLoaded.txt",0
+LoadedFileTest byte "UnSolvedLoaded.txt",0
+SolvHolder BYTE BUFFER_SIZE DUP(?)
+UnSolvHolder BYTE BUFFER_SIZE DUP(?)
+SolvedArr BYTE BUFFER_SIZE DUP(?)
+UnSolvedArr BYTE BUFFER_SIZE DUP(?)
+fileHandle HANDLE ?
+UnSolvedSFileName byte "diff_?_?.txt", 0
+SolvedSFileName byte "diff_?_?_solved.txt", 0
+ChooseLevelString byte "Choose the Difficulty Level : ", 0
+Level1String byte "For Easy Level Enter 1", 0
+Level2String byte "For intermediate level Enter 2", 0
+level3String byte "For Difficult Level Enter 3", 0
+EnterLevelString byte "Enter Your Level Choice : ", 0
+;//this the solved Array you will change it to (SolvedArr byte 81 dup(?))
+;//I made it 9 only to try and check it how it works
+;//this the UnSolved Array you will change it to (SolvedArr byte 81 dup(?))
+
+
+CorrectENum byte 0 ;//Counter Coount How many user Enterd Correct Numbers
+IncorrectENum byte 0 ;//Counter Coount How many user Enterd InCorrect Numbers
+
+;//String tells user How he Can Enter a value in specific Postion
+InputString byte "Enter value , x and y : ", 0
+
+NumCols = 9 ;// constant number of Columns in Sudoku You will Change it To NumCols = 9
+NumRows = 9 ;// constant number of Rows in Sudoku You will Change it To NumRows = 9
+
+RowNumber byte ? ;// The x Postion The user will Enter
+
+ColumnNumber byte ? ;// The Y Postion The user will Enter
+
+value byte ? ;// The value The user will Enter To put it in the (x,y) Postion
+
+;//Counter will count The number of zeros in unsolved array and when user Enter correct value it will be decreased
+;// And we will count zeros using CountingUnSolvedCells Procedure
+UnSolvedCells byte 0
+
+;//Messege will appear to user if he entered incorrect value in (x,y) postion
+InvalidInput byte "You Enterd Invalid Value", 0
+
+.code
+
+;// This proc take the value and (x.y) position to put insudoku 
+InputValue proc, xvalue:byte, xRowNumber : byte, xColumnNumber : byte
+
+;//using (x,y) position we will get postion as 2d array in solved array 
+mov eax, byte ptr NumCols
+mul xRowNumber
+mov ebx, eax
+mov edx, 0
+movzx esi, ColumnNumber
+mov al, xvalue
+cmp SolvedArr[ebx + esi], al
+;//after this comparing the value in x,y position with the value user had enterd
+jne NotE
+;// if the value eaual the value in solved array decrement unsolved Cells counter
+;// increment Correct entered numbers couner
+dec UnSolvedCells
+inc CorrectENum;
+;// beacuase of the value is correct put in unsolved array
+mov UnSolvedArr[ebx + esi], al
+jmp done
+
+;// if the value is incorrect display messege
+NotE:
+mov edx, offset InvalidInput
+call writestring
+call crlf
+inc IncorrectENum ;//increment incorrect numbers counter 
+
+done:
+;// then calling display proc to display unsolved arr after inpu value even the the value is incorrect
+call DisplayUnSolvedS
+call crlf
+ret
+InputValue endp
+
+;// Displaying Solved Sudoku Array
+DisplaySolvedS proc
+mov ecx, 9 ;//change it to mov ecx,9 because I was try in small scale
+mov ebx, offset SolvedArr ;//point at the begining of solved arr
+L3 :
+push ecx ;// pushing the current ecx before mov another value in it 
+		mov ecx, 9 ;//change it to mov ecx,9 because I was try in small scale 3*3
+		
+		;// this loop display a line of sudoku number by number
+		L4 :
+		mov al, [ebx]
+			inc ebx
+			call writedec
+			loop L4
+		;// return the row number of sudoku (previous value) 
+		pop ecx
+		call crlf
+		loop L3
+		ret
+DisplaySolvedS endp
+
+
+;// Displaying Solved Sudoku Array
+DisplayUnSolvedS proc
+mov ecx, 9 ;//change it to mov ecx,9 because I was try in small scale 3*3
+mov ebx, offset UnSolvedArr ;//point at the begining of unsolved arr
+L3 :
+	push ecx ;// pushing the current ecx before mov another value in it 
+		mov ecx, 9 ;//change it to mov ecx,9 because I was try in small scale 3*3
+		
+		;// this loop display a line of sudoku number by numbe
+		L4 :
+		mov al, [ebx]
+		inc ebx
+		call writedec
+		loop L4
+		
+		;// return the row number of sudoku (previous value)
+		pop ecx
+		call crlf
+		loop L3
+		ret
+DisplayUnSolvedS endp
+
+;// this Proc Counting the number of zeros in the Unsolved Array
+;// So I can loop on the unsolved cells counter in the main and tells the user to input
+;// value to fill the Unsolved Sudoku
+CountingUnSolvedCells proc
+
+mov edx, offset UnSolvedArr ;//point at the begining of the unsolved array
+;//I will loop 9 time (my small scale 3*3 on the array to count zeros
+;// Change it to 81 in 3bdo to change scale
+mov ecx, 9 
+L1:
+	;// compare the every elemnt with zero if it is zero increment the unsolved cells counter
+	mov al, 0
+		cmp[edx], al
+		jne L2
+		inc UnSolvedCells
+		L2 :
+	Add edx, type UnSolvedArr
+		loop L1
+
+		movzx eax, UnSolvedCells ;// display the unsolved cells to user
+		call writedec
+		call crlf
+		ret
+CountingUnSolvedCells endp
+;/ this function that read Solved suduko
+    readSOLV PROC
+		call OpenInputFile
+		mov fileHandle,eax
+		cmp eax,INVALID_HANDLE_VALUE
+		je exit1
+		mov edx,offset SolvHolder
+		mov ecx,BUFFER_SIZE
+		call ReadFromFile
+		jmp cont
+		exit1:
+		mov edx,offset DidntPlay
+		call writestring
+		call crlf
+			exit
+			cont:
+		ret
+	readSOLV ENDP
+	;//
+	;/ this function that read unSolved suduko
+		readUNSOLV PROC
+		call OpenInputFile
+		mov fileHandle,eax
+		mov edx,offset UnSolvHolder
+		mov ecx,BUFFER_SIZE
+		call ReadFromFile
+		ret
+	readUNSOLV ENDP
+	;//
+;// Choosing Level Proc takes the difficulty level fron user and change set files names
+ChoosingLevel PROC
+
+mov edx, OFFSET ChooseLevelString
+call WriteString
+call crlf
+mov edx, offset Level1String
+call WriteString
+call crlf
+mov edx, offset Level2String
+call WriteString
+call crlf
+mov edx, offset Level3String
+call WriteString
+call crlf
+mov edx, offset EnterLevelString
+call writestring
+call readchar
+;// Display the number the user entered
+call writechar
+;// set the difficulty level to files names
+mov[UnSolvedSFileName + 5], al
+mov[SolvedSFileName + 5], al
+
+;// this part generate random number of the models of sudoku
+rdtsc
+shr eax,2
+mov eax,[ebp+12]
+mov ebx,3
+cdq
+div ebx
+inc edx
+movzx eax,dl
+add al,"0"
+call crlf
+;// display the generated random number to check it is correct generated
+call writechar
+call crlf
+;//moving the generated random number for model (1 or 2 or 3) to files names
+mov[UnSolvedSFileName + 7], al
+mov[SolvedSFileName + 7], al
+;// display the Unsolved Sudoku File name
+mov edx, offset UnSolvedSFileName
+call writestring
+call crlf
+;// display the Unsolved Sudoku File name
+mov edx, offset SolvedSFileName
+call writestring
+call crlf
+ret
+ChoosingLevel endp
+	;//this for reading from files and put in arrays 
+	ReadingFile proc
+	;// this code convert array of chars to array of numbers UnSolvedArr
+		mov edx,OFFSET UnSolvHolder
+		mov ebx,OFFSET UnSolvedArr 
+		mov ecx,BUFFER_SIZE
+	l1:
+		movzx eax,byte ptr[edx]
+		sub eax,48
+		cmp eax,9
+		ja skip
+		mov byte ptr[ebx],al
+		jmp ex
+		skip:
+		dec ebx
+		ex:
+		inc edx
+		inc ebx
+			loop l1
+			;// end
+		;// this code convert array of chars to array of numbers for the SolvedArr
+		mov edx,OFFSET SolvHolder
+		mov ebx,OFFSET SolvedArr
+		mov ecx,BUFFER_SIZE
+	l2:
+		movzx eax,byte ptr[edx]
+		sub eax,48
+		cmp eax,9
+		ja skip1
+		mov byte ptr[ebx],al
+		jmp ex1
+		skip1:
+		dec ebx
+		ex1:
+		inc edx
+		inc ebx
+			loop l2
+			;// end
+			ret
+	ReadingFile endp
+	YourChoice proc
+		mov edx ,offset Choice1
+		call writestring
+		call crlf
+		mov edx,offset Choice2
+		call writestring
+		call crlf
+		call readdec
+		cmp al,1
+	ja load
+			call ChoosingLevel
+			mov edx,offset UnSolvedSFileName
+			call readUNSOLV
+			mov edx,offset SolvedSFileName
+			call readSOLV
+			call ReadingFile
+			jmp new1
+	load:
+			mov edx,offset LoadedFileTest
+			call readUNSOLV
+			mov edx,offset LoadedFileAnswer
+			call readSOLV
+			call ReadingFile
+		new1:
+		ret
+	YourChoice endp
+CreateNewFile proc
+		mov edx,offset LoadedFileTest
+		call CreateOutputFile
+		mov fileHandle,eax
+		mov edx,offset UnSolvHolder
+		mov ecx,BUFFER_SIZE
+		call WriteToFile
+		mov edx,offset LoadedFileAnswer
+		call CreateOutputFile
+		mov fileHandle,eax
+		mov edx,offset SolvHolder
+		mov ecx,BUFFER_SIZE
+		call WriteToFile
+		ret
+CreateNewFile endp
+;// the main Proc
+		main PROC
+		call YourChoice
+		call CountingUnSolvedCells
+			call crlf
+		;//Display Unsolved Sudoku To user
+		call DisplayUnSolvedS 
+		call crlf
+		;// this loop display and tells user to enter value in specific position
+		;//according to he number of unsolvedcells counter 
+		Lx:
+		;// display message to user to make him enter value
+		mov edx,offset InputString
+		call writestring
+		call crlf
+		;// take the value from user and store it (value variable)
+		call readdec
+		mov value,al
+		;// take the X (row position from user and store it (RowNumber variable)
+		call readdec
+		dec al
+		mov RowNumber,al
+		;// take the Y (Column position from user and store it (ColumnNumber variable)
+		call readdec
+		call crlf
+		dec al ;// we decrement it by 1 because we zero based and he think we 1 based
+		mov ColumnNumber, al
+
+		;// Calling the proc that teke value x,y postion and treat as 2d arr in the proc (found in lecture)
+		invoke InputValue, value, RowNumber, ColumnNumber
+		;// we mov the unsolvedcells counter to ecx of loop every time because it change every time in Input value proc
+		movzx ecx, UnSolvedCells ;
+		;//we increment ecx by 1 after that because if the unsolved cells was 1
+		;//  ecx will be decremented by 1 in the (loop word) so it will not continue the last cell 
+		inc ecx  
+		loop lx
+
+	;// display correct number user entered counter   
+	movzx eax, CorrectENum
+	call writedec
+	call crlf
+	;// display Incorrect number user entered counter
+	movzx eax, IncorrectENum
+	call writedec
+	call crlf
+	call CreateNewFile
+	exit
+main ENDP
+END main

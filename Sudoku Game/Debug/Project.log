@@ -1,0 +1,4 @@
+﻿  Assembling main.asm...
+main.asm(112): warning A6004: procedure argument or local not referenced : xColumnNumber
+  Project.vcxproj -> C:\Users\Abraam\Desktop\Third\Project_Template\Project_Template\Debug\Project.exe
+  Project.vcxproj -> C:\Users\Abraam\Desktop\Third\Project_Template\Project_Template\Debug\Project.pdb (Full PDB)
